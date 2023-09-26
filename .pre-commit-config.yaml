@@ -1,0 +1,41 @@
+##### IMPORTANT: Check pyproject.toml for the configuration of these hooks #####
+
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+# Global exclude to ignore any folder named migrations
+exclude: migrations/
+
+#Hooks Definition
+repos:
+
+# autoflake removes unused imports and unused variables from Python code
+# https://github.com/PyCQA/autoflake#readme
+-   repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.0
+    hooks:
+    -   id: autoflake
+        exclude: "migrations"
+        # add to the pyproject.toml file when https://github.com/PyCQA/autoflake/issues/59 is solved
+        args: [ 
+        "--remove-all-unused-imports",
+        "--ignore-init-module-imports",
+        "--remove-unused-variables",
+        "-i",
+    ]
+
+#isort: isort your imports, so you don't have to.
+#See https://pycqa.github.io/isort/index.html for more info
+-   repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+    -   id: isort
+        name: isort (python)
+
+#black: The uncompromising Python code formatter
+#See https://black.readthedocs.io/en/stable/ for more info
+-   repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+    -   id: black
+      

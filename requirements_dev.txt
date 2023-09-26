@@ -1,0 +1,8 @@
+###################################### IMPORTANT #########################################
+# use pip freeze > requirements_dev.text to lock the project dependencies after first run #
+##########################################################################################
+django-breeze
+psycopg2
+psycopg2-binary
+whitenoise
+python-decouple
