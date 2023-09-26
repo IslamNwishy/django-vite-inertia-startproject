@@ -37,15 +37,22 @@ class InertiaFormMixin:
         return self.submit_button_text
 
     def serialize_form(self):
+        """Serialize a django form into dict"""
         form_data = {attr: getattr(self, attr, None) for attr in FORM_META}
         form_data["fields"] = self.serialize_fields()
-        form_data["initial"] = {field["name"]: field["initial"] for field in form_data["fields"]}
+        form_data["initial"] = {
+            field["name"]: field["initial"] for field in form_data["fields"]
+        }
         form_data["data"] = dict(form_data["data"])
         form_data["submit_button_text"] = self.get_submit_button_text()
         return form_data, json.loads(self.errors.as_json())
 
     def serialize_fields(self, read_only=False):
-        return [self.get_inertia_field(field, name, read_only) for name, field in self.fields.items()]
+        "serialize django form field into dict"
+        return [
+            self.get_inertia_field(field, name, read_only)
+            for name, field in self.fields.items()
+        ]
 
     def get_inertia_field(self, field, name, read_only):
         """serialize a form field"""
@@ -56,26 +63,34 @@ class InertiaFormMixin:
         field_data = {attr: getattr(field, attr, None) for attr in FORM_FIELD_ATTRS}
 
         # these will passed to the actual html field
-        field_type = TYPE_MAPPING.get(type(widget), getattr(widget, "input_type", "text"))
+        field_type = TYPE_MAPPING.get(
+            type(widget), getattr(widget, "input_type", "text")
+        )
         meta_attrs = {"type": field_type}
         multiple = getattr(widget, "allow_multiple_selected", None)
         if multiple:
             meta_attrs["multiple"] = True
         for key, value in widget_attrs.items():
             if key in RENAME_FIELDS:
-                key = RENAME_FIELDS[key].get(field_type, RENAME_FIELDS[key].get("default", key))
+                key = RENAME_FIELDS[key].get(
+                    field_type, RENAME_FIELDS[key].get("default", key)
+                )
             meta_attrs[key] = value
 
         field_data["attrs"] = meta_attrs
 
         # used to define the behaviour of the field but should not be passed directly to html
-        field_data["initial"] = InertiaFormMixin.get_inertia_initial(field_data["initial"])
+        field_data["initial"] = InertiaFormMixin.get_inertia_initial(
+            field_data["initial"]
+        )
         field_data["name"] = name
         field_data["id"] = field.html_initial_id
         field_data["label"] = str(field.label)
         field_data["value"] = field.value()
         if read_only and self.instance:
-            field_data["value"] = self._get_readonly_value(field.field, field_data["value"], name)
+            field_data["value"] = self._get_readonly_value(
+                field.field, field_data["value"], name
+            )
 
         choices = getattr(widget, "choices", None)
         if choices:
@@ -84,9 +99,27 @@ class InertiaFormMixin:
         return field_data
 
     def _get_readonly_value(self, field, value, name):
-        """"""
+        """
+        serialize the field value for viewing (similar to DRF's SerializerMethodField)
+
+        Usage:
+            in the form add a function in the format readonly_<field_name>
+
+        Example:
+
+        class ExampleForm(InertiaForm):
+            ...
+            info = forms.CharField()
+            ...
+
+            def readonly_info(self, value):
+                return value.replace('\n', ',')
+
+        """
         obj = field.to_python(value)
-        func = getattr(self, f"readonly_{name}", READONLY_DEFAULT_POSTPROCESS.get(type(field)))
+        func = getattr(
+            self, f"readonly_{name}", READONLY_DEFAULT_POSTPROCESS.get(type(field))
+        )
         if func:
             return func(obj)
 
