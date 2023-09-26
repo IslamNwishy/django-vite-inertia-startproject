@@ -1,0 +1,48 @@
+import argparse
+import os
+import subprocess
+
+from prep_env import prep_env
+from prep_frontend import prep_frontend
+from prep_settings import prep_settings
+
+
+def start_project():
+    parser = argparse.ArgumentParser(
+        description="Create a project django + vite (react + tailwind) + inertia"
+    )
+    parser.add_argument("project_name", nargs="?")
+    args = parser.parse_args()
+    project_name = args.project_name
+    if not project_name:
+        raise ValueError(
+            "You need to provide a project name follow (python ./startproject.py <project_name>)"
+        )
+
+    # create project
+    subprocess.run(["django-breeze", "startproject", project_name])
+    source = f"./{project_name}__temp"
+    os.rename(project_name, source)
+
+    # gather all files
+    allfiles = os.listdir(source)
+
+    # iterate on all files to move them to destination folder
+    for f in allfiles:
+        src_path = os.path.join(source, f)
+        dst_path = os.path.join(".", f)
+        os.rename(src_path, dst_path)
+    os.removedirs(source)
+
+    # Prepare Settings
+    prep_settings(project_name)
+
+    # Create Front end
+    prep_frontend()
+
+    # prep env
+    prep_env(project_name)
+
+    print(
+        f"Your {project_name} project was initialized successfully!\nYou should delete startproject.py as it is no longer needed"
+    )
