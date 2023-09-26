@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 TAILWIND_FORMS_VERSION = '"^0.5.6"'
@@ -27,3 +28,13 @@ def prep_frontend():
         )
         file.seek(0)
         file.write(file_text)
+
+    # gather all files
+    source = "./startproject/_temp_files"
+    allfiles = os.listdir(source)
+
+    # iterate on all files to move them to destination folder
+    for f in allfiles:
+        src_path = os.path.join(source, f)
+        dst_path = os.path.join("./src", f)
+        os.rename(src_path, dst_path)

@@ -44,5 +44,5 @@ def start_project():
     prep_env(project_name)
 
     print(
-        f"Your {project_name} project was initialized successfully!\nYou should delete startproject.py as it is no longer needed"
+        f"\nYour {project_name} project was initialized successfully!\nYou should delete startproject directory as it is no longer needed"
     )
