@@ -1,5 +1,4 @@
-import os
-import subprocess
+import shutil
 
 from django.core.management.utils import get_random_secret_key
 
@@ -13,8 +12,5 @@ def prep_env(project_name):
 
     with open(".env", "w") as file:
         file.write(env_details)
-    try:
-        os.removedirs(".git")
-    except:
-        pass
-    subprocess.run(["git", "init"])
+
+    shutil.rmtree(".git", ignore_errors=True)
