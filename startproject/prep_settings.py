@@ -85,6 +85,10 @@ DJANGO_BREEZE = {
         "STATIC_URL_PREFIX": "",
     },
 }
+
+# CSRF
+CSRF_HEADER_NAME = "HTTP_X_XSRF_TOKEN"
+CSRF_COOKIE_NAME = "XSRF-TOKEN"
 """
     with open(f"./{project_name}/settings.py", "w") as file:
         file.write(file_text)
