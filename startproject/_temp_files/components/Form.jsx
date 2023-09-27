@@ -3,14 +3,25 @@ import Button from '../components/Button';
 import FormField from '../components/FormField';
 
 export default function Form(form) {
-  const { data, setData, post, processing, errors } = useForm(form.initial);
+  const { data, transform, setData, post, processing, errors } = useForm(form.initial);
   const submit = (e) => {
     e.preventDefault();
+    console.log(data);
     post(form.submitEndpoint || '', {
       forceFormData: true,
       preserveState: form?.preserveState === false ? false : true,
     });
   };
+
+  transform((data) => {
+    const formData = new FormData();
+    for (const key of Object.keys(data)) {
+      const value = data[key];
+      if (Array.isArray(value)) for (const val of value) formData.append(key, val);
+      else formData.append(key, data[key]);
+    }
+    return formData;
+  });
 
   return (
     <form onSubmit={submit}>

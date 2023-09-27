@@ -41,14 +41,18 @@ class InertiaFormMixin:
         form_data = {attr: getattr(self, attr, None) for attr in FORM_META}
         form_data["fields"] = self.serialize_fields()
         form_data["initial"] = {
-            field["name"]: field["initial"] for field in form_data["fields"]
+            field["name"]: self.get_inertia_initial(
+                field["value"], field["attrs"].get("multiple")
+            )
+            for field in form_data["fields"]
         }
         form_data["data"] = dict(form_data["data"])
         form_data["submit_button_text"] = self.get_submit_button_text()
         return form_data, json.loads(self.errors.as_json())
 
     def serialize_fields(self, read_only=False):
-        "serialize django form field into dict"
+        """serialize django form field into dict"""
+
         return [
             self.get_inertia_field(field, name, read_only)
             for name, field in self.fields.items()
@@ -80,9 +84,6 @@ class InertiaFormMixin:
         field_data["attrs"] = meta_attrs
 
         # used to define the behaviour of the field but should not be passed directly to html
-        field_data["initial"] = InertiaFormMixin.get_inertia_initial(
-            field_data["initial"]
-        )
         field_data["name"] = name
         field_data["id"] = field.html_initial_id
         field_data["label"] = str(field.label)
@@ -126,20 +127,13 @@ class InertiaFormMixin:
         return value
 
     @staticmethod
-    def get_inertia_initial(initial):
+    def get_inertia_initial(initial, multiple=False):
         """get the initial data of a field"""
-        if callable(initial):
-            try:
-                initial = initial()
-            except:
-                initial = ""
-
-        if is_jsonable(initial):
-            return initial or ""
-        if isinstance(initial, Model):
-            return initial.id
-
-        return str(initial)
+        if initial is None:
+            if multiple:
+                return []
+            return ""
+        return initial
 
 
 class InertiaModelForm(InertiaFormMixin, forms.ModelForm):

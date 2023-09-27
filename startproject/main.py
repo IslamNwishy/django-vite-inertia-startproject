@@ -12,6 +12,7 @@ def start_project():
         description="Create a project django + vite (react + tailwind) + inertia"
     )
     parser.add_argument("project_name", nargs="?")
+    parser.add_argument("-f", "--front", default="vue3", choices=["react", "vue3"])
     args = parser.parse_args()
     project_name = args.project_name
     if not project_name:
@@ -38,7 +39,7 @@ def start_project():
     prep_settings(project_name)
 
     # Create Front end
-    prep_frontend()
+    prep_frontend(args.front)
 
     # prep env
     prep_env(project_name)

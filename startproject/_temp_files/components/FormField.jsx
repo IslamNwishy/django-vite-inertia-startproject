@@ -20,7 +20,6 @@ function Input(props) {
   }
 }
 export default function FormField(props) {
-  console.log(props);
   return (
     <div>
       <label htmlFor={props.id} className="block text-sm mb-2 dark:text-white">

@@ -1,4 +1,5 @@
 # Python Standard Library Imports
+import json
 import re
 
 # Django Imports
@@ -6,7 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import QueryDict
 
 # Other Third Party Imports
-from inertia import render
+from inertia import lazy, render
 
 from utils.inertia_utils.inertia_form_mixin import InertiaFormMixin
 
@@ -113,24 +114,9 @@ class InertiaViewMixin(InertiaTemplateMixin):
 
     def get_form_class(self):
         old_form = super().get_form_class()
-
-        # if form class does not have the InertiaFormMixin make a new one that inherits it
         if not issubclass(old_form, InertiaFormMixin):
             return type(
                 f"Inertia{type(old_form).__name__}", (InertiaFormMixin, old_form), {}
             )
 
         return old_form
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-
-        query = kwargs.get("data")
-        if query:
-            data = QueryDict("", mutable=True)
-            for key, value in query.items():
-                data.appendlist(re.sub(r"\[\d+\]", "", key), value)
-
-            kwargs["data"] = data
-
-        return kwargs

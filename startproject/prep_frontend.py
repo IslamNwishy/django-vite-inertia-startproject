@@ -4,8 +4,8 @@ import subprocess
 TAILWIND_FORMS_VERSION = '"^0.5.6"'
 
 
-def prep_frontend():
-    subprocess.run(["django-breeze", "create-app", "react"])
+def prep_frontend(front):
+    subprocess.run(["django-breeze", "create-app", front])
     with open("vite.config.js", "r+") as file:
         file_text = file.read().replace('host: "localhost"', "host: true")
         file.seek(0)
