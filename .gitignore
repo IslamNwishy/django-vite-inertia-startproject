@@ -23,12 +23,14 @@ dist-ssr
 *.sln
 *.sw?
 
+# python bytecode
 /__pycache__/
 **/__pycache__/
 
 # virtual environments
 venv
 env
-
 .env
+
+# vite temp files
 .vite
