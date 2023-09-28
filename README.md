@@ -1,4 +1,4 @@
-# Django + Vite (react) + Inertia Initialize project tool
+# Django + Vite + Inertia Initialize project tool
 
 ## Steps
 
