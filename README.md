@@ -8,6 +8,7 @@
 - Install django-breeze `pip install django-breeze`
 - Run `python .\startproject <project name>` with the name of the project you want to initialize
 - run `docker compose up` and navigate to `localhost:8000` to see the welcome page
+  - hint if you get an error telling you `docker-entrypoint.sh file or directory does not exist` go to the `docker-entrypoint.sh` file with vscode and make sure the end of line sequence is `LF` and not `CRLF`
 - Delete the startproject directory after the project is initialized
 
 ## Get Started
