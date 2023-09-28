@@ -29,13 +29,27 @@ def prep_frontend(front):
         file.seek(0)
         file.write(file_text)
 
-    source = "./startproject/_temp_files/vue3/components"
-    dest = "./src/components"
-    if front == "react":
-        # gather all files
-        source = "./startproject/_temp_files/react"
-        dest = "./src"
+    source = "./startproject/_temp_files/react"
+    dest = "./src"
+    if front == "vue3":
+        source = "./startproject/_temp_files/vue3/components"
+        dest = "./src/components"
+        # the vue3 creation processes overwrites our gitignore
+        with open(".gitignore", "a") as f:
+            f.write(
+                """
+# python bytecode
+/__pycache__/
+**/__pycache__/
 
+# virtual environments
+venv
+env
+.env
+
+# vite temp files
+.vite"""
+            )
     allfiles = os.listdir(source)
 
     # iterate on all files to move them to destination folder
