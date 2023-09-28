@@ -36,10 +36,10 @@ class InertiaFormMixin:
         """return the text to show for the submit button"""
         return self.submit_button_text
 
-    def serialize_form(self):
+    def serialize_form(self, read_only=False):
         """Serialize a django form into dict"""
         form_data = {attr: getattr(self, attr, None) for attr in FORM_META}
-        form_data["fields"] = self.serialize_fields()
+        form_data["fields"] = self.serialize_fields(read_only)
         form_data["initial"] = {
             field["name"]: self.get_inertia_initial(
                 field["value"], field["attrs"].get("multiple")
