@@ -56,3 +56,23 @@ class MyForm(InertiaFormMixin, forms.ModelForm):
     def readonly_text_list(self, value):
         return value.replace('\n',' ,')
 ```
+
+### Frontend
+
+Some premade components to ease the process of creating typical forms made using django
+
+They have tailwind classes already to give a default look, but you are encourged to change them for a new project once you get things going
+
+- Usage:
+
+#### vue3
+
+```javascript
+<Form :form='form'/>
+```
+
+#### react
+
+```javascript
+<Form {...form} />
+```
