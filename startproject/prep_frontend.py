@@ -23,9 +23,7 @@ def prep_frontend(front):
         file.write(file_text)
 
     with open("tailwind.config.js", "r+") as file:
-        file_text = file.read().replace(
-            "plugins: []", "plugins: [require('@tailwindcss/forms')]"
-        )
+        file_text = file.read().replace("plugins: []", "plugins: [require('@tailwindcss/forms')]")
         file.seek(0)
         file.write(file_text)
 
@@ -46,6 +44,15 @@ def prep_frontend(front):
 venv
 env
 .env
+
+# django
+*/migrations_dev/*
+!*/migrations_dev/__init__.py
+media
+/static/*
+!/static/dist
+/static/dist/*
+!/static/dist/.gitkeep
 
 # vite temp files
 .vite"""

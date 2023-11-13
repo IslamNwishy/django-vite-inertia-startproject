@@ -17,20 +17,17 @@ def prep_settings(project_name):
 
     apps += """    "django_breeze",
     "inertia",
+    "core",
 """
 
     file_text = re.sub(apps_pattern, f"INSTALLED_APPS = [{apps}]", file_text)
     file_text = re.sub(middleware_pattern, f"MIDDLEWARE = [{middlewares}]", file_text)
     file_text = file_text.replace(
         "from pathlib import Path",
-        "from pathlib import Path\nfrom decouple import config",
+        "from pathlib import Path\nfrom decouple import config\nfrom utils.inertia_utils.inertia_json_encoder import InertiaCustomJsonEncoder",
     )
-    file_text = re.sub(
-        r"SECRET_KEY = .*", 'SECRET_KEY = config("SECRET_KEY")', file_text
-    )
-    file_text = file_text.replace(
-        "DEBUG = True", 'DEBUG = config("DEBUG", True, cast=bool)'
-    )
+    file_text = re.sub(r"SECRET_KEY = .*", 'SECRET_KEY = config("SECRET_KEY")', file_text)
+    file_text = file_text.replace("DEBUG = True", 'DEBUG = config("DEBUG", True, cast=bool)')
     file_text = file_text.replace(
         "ALLOWED_HOSTS = []",
         'ALLOWED_HOSTS = config("ALLOWED_HOSTS", "*").replace(" ","").split(",")',
@@ -47,7 +44,11 @@ DATABASES = {{
         "HOST": config("DB_HOST", default="localhost"),
         "PORT": config("DB_PORT", default="5432"),
     }},
-}}""".format(
+}}
+
+# User Model
+AUTH_USER_MODEL = "core.User"
+""".format(
             project_name=project_name
         ),
         file_text,
@@ -89,6 +90,21 @@ DJANGO_BREEZE = {
 # CSRF
 CSRF_HEADER_NAME = "HTTP_X_XSRF_TOKEN"
 CSRF_COOKIE_NAME = "XSRF-TOKEN"
+
+# Migrations
+MIGRATION_PATH_DICT = {
+    "PRODUCTION": "migrations",
+    "STAGING": "migrations_staging",
+}
+
+ENVIRONMENT = config("ENVIRONMENT", default="LOCAL")
+MIGRATION_PATH = MIGRATION_PATH_DICT.get(ENVIRONMENT, "migrations_dev")
+MIGRATION_MODULES = {
+    "core": "core." + MIGRATION_PATH,
+}
+
+# Inertia Encoder
+INERTIA_JSON_ENCODER = InertiaCustomJsonEncoder
 """
     with open(f"./{project_name}/settings.py", "w") as file:
         file.write(file_text)

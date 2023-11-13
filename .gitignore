@@ -30,7 +30,16 @@ dist-ssr
 # virtual environments
 venv
 env
+
+# django
 .env
+*/migrations_dev/*
+!*/migrations_dev/__init__.py
+media
+/static/*
+!/static/dist
+/static/dist/*
+!/static/dist/.gitkeep
 
 # vite temp files
 .vite

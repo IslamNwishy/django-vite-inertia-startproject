@@ -1,24 +1,40 @@
 # Python Standard Library Imports
-import json
+import logging
 import re
+from copy import copy
 
 # Django Imports
 from django.core.exceptions import ImproperlyConfigured
-from django.http import QueryDict
+from django.forms import HiddenInput
+from django.http import HttpResponse, HttpResponseRedirect
+from django.urls import resolve
 
 # Other Third Party Imports
 from inertia import lazy, render
-
 from utils.inertia_utils.inertia_form_mixin import InertiaFormMixin
 
 
 class InertiaTemplateMixin:
     template_name = None
     title = ""
+    minimal = False
+    parent_view = None
+    is_modal = False
+    can_hold_modal = True
+    template_extras = {}
+
+    def dispatch(self, *args, **kwargs):
+        if not getattr(self.request, "faked", False):
+            self.template_extras = self.generate_template_name()
+        return super().dispatch(*args, **kwargs)
+
+    @classmethod
+    def get_view_name(cls):
+        return cls.__name__.removesuffix("View")
 
     def get_title(self):
         """return a title for the rendered page"""
-        return self.title
+        return self.title or re.sub(r"(\w)([A-Z])", r"\1 \2", self.get_view_name())
 
     def render_to_response(self, context, **response_kwargs):
         """
@@ -27,12 +43,19 @@ class InertiaTemplateMixin:
 
         Pass response_kwargs to the constructor of the response class.
         """
-        response_kwargs.setdefault("content_type", self.content_type)
+        if getattr(self.request, "faked", False):
+            return HttpResponse()
+
         context.pop("site", None)
-        context["view"] = self.get_title()
+        context["view"] = self.get_view_name()
+        if self.parent_view:
+            context["subview"] = context["view"]
+            context["view"] = self.parent_view.get_view_name()
 
-        context = self.serialize_list_response(context)
-
+        context["title"] = self.get_title()
+        context["success_url"] = self.get_success_url()
+        context["current_url"] = self.request.get_full_path()
+        context["__EXTRAS__"] = self.template_extras
         return render(
             self.request,
             self.get_template_name(),
@@ -45,52 +68,109 @@ class InertiaTemplateMixin:
         change it if you want the ListView to return a different response schema
         """
 
-        paginator = context.pop("paginator", None)
-        if paginator:
-            context["page_obj"] = {
-                "count": paginator.count,
-                "num_pages": paginator.num_pages,
-                "per_page": paginator.per_page,
-                "number": context["page_obj"].number,
-            }
-
         # will use form_class for field serialization
         # if it does not exist object list will return normally as a queryset
         object_list = context.get("object_list")
         if object_list and hasattr(self, "form_class"):
             form = self.get_form_class()
-            context["object_list"] = [
-                {"fields": form(instance=obj).serialize_fields(True), "id": obj.id}
+            context["object_list"] = lambda: [
+                {
+                    "fields": form(instance=obj).serialize_fields(read_only=True, minimal=self.minimal),
+                    "id": obj.id,
+                }
                 for obj in object_list
             ]
-            context["page_obj"]["headers"] = [
-                {"name": field["name"], "label": field["label"]}
-                for field in context["object_list"][0]["fields"]
-            ]
 
+        one_obj = context.get("object")
+        if one_obj and hasattr(self, "form_class"):
+            form = self.get_form_class()
+            context["object"] = lambda: {
+                **form(instance=one_obj).serialize_fields(read_only=True, minimal=True),
+                "id": one_obj.id,
+            }
+
+        paginator = context.pop("paginator", None)
+        if paginator:
+            page_num = context["page_obj"].number
+            context["page_obj"] = lambda: {
+                "count": paginator.count,
+                "num_pages": paginator.num_pages,
+                "per_page": paginator.per_page,
+                "number": page_num,
+                "headers": [
+                    {"name": field["name"], "label": field["label"]} for field in context["object_list"]()[0]["fields"]
+                ]
+                if not self.minimal
+                else [],
+            }
+
+        filterset = context.pop("filter", None)
+        if filterset:
+            context["filter_form"] = self.serialize_filterset(filterset)
         return context
+
+    def serialize_filterset(self, filterset):
+        return lambda: type(
+            f"Inertia{type(filterset.form.__class__).__name__}",
+            (InertiaFormMixin, filterset.form.__class__),
+            {},
+        )(filterset.form.data).serialize_form()
+
+    def generate_template_name(self):
+        if self.is_modal:
+            referer = self.request.headers.get("Referer")
+            if referer:
+                base_path = "/" + "/".join(referer.split("/")[3:]).split("?")[0]
+                try:
+                    view_cls = resolve(base_path).func.view_class
+                    if view_cls.is_modal:
+                        base_path = self.request.session.get("last_page")
+                        view_cls = resolve(base_path).func.view_class if base_path else None
+                except Exception as e:
+                    logging.warning(f"{e} while trying to get the base page for the modal {self.__class__.__name__}")
+                    view_cls = None
+
+                if view_cls and view_cls.can_hold_modal:
+                    self.parent_view = view_cls
+                    self.request.session["last_page"] = base_path
+                    self.last_page_url = base_path
+                    return {"base": view_cls.template_name, "modal": self.template_name, "stale": True}
+
+            if not self.parent_view:
+                raise ImproperlyConfigured("Modal views must have a parent view")
+
+            self.last_page_url = self.get_success_url()
+            self.request.session["last_page"] = None
+            return {"base": self.parent_view.template_name, "modal": self.template_name}
+
+        self.request.session["last_page"] = None
+        return {"base": self.template_name}
 
     def get_template_name(self):
         """
         Return template name to be used for the request.
         """
-        if self.template_name is None:
+        if not isinstance(self.template_name, str):
             raise ImproperlyConfigured(
                 "InertiaTemplateMixin requires either a definition of "
                 "'template_name' or an implementation of 'get_template_names()'"
             )
-        else:
-            return self.template_name
+
+        return self.template_extras["base"]
 
     def get_context_object_name(self, object_list):
         return None
 
     def get_form_class(self):
+        if hasattr(super(), "get_form_class"):
+            return super().get_form_class()
         return getattr(self, "form_class", None)
 
 
 class InertiaViewMixin(InertiaTemplateMixin):
     permission_checks = []
+    submit_button_text = None
+    allow_hide = False
 
     def dispatch(self, *args, **kwargs):
         func = super().dispatch
@@ -99,24 +179,93 @@ class InertiaViewMixin(InertiaTemplateMixin):
 
         return func(*args, **kwargs)
 
+    def serialize_form(self, form):
+        """Serialize a form for inertia"""
+        if not isinstance(form, InertiaFormMixin):
+            raise ImproperlyConfigured(
+                f"{type(form).__name__} must inherit from inertia_utils.inertia_form_mixin.InertiaFormMixin"
+            )
+
+        return lambda: form.serialize_form(self.submit_button_text), form.serialize_errors
+
     def get_context_data(self, **kwargs):
         """Serialize a form for inertia if found"""
         context = super().get_context_data(**kwargs)
         form = context.get("form")
         if form:
-            if not isinstance(form, InertiaFormMixin):
-                raise ImproperlyConfigured(
-                    f"{type(form).__name__} must inherit from inertia_utils.inertia_form_mixin.InertiaFormMixin"
+            if isinstance(form, list):
+                form_array, errors_array = [], []
+                for f in form:
+                    form, errors = self.serialize_form(f)
+                    form_array.append(form)
+                    errors_array.append(errors)
+                context["form"] = form_array
+                context["errors"] = errors_array
+
+            else:
+                context["form"], context["errors"] = self.serialize_form(form)
+
+        context = self.serialize_list_response(context)
+
+        if self.parent_view:
+            fake_request = copy(self.request)
+            fake_request.method = "GET"
+            setattr(fake_request, "faked", True)
+            parent_view = self.parent_view()
+            try:
+                parent_view.setup(request=fake_request)
+                parent_view.dispatch(fake_request)
+                parent_context = parent_view.get_context_data()
+            except:
+                parent_context = {}
+            if self.template_extras.get("stale", False):
+                refresh_context_attrs = []
+                for key, value in parent_context.items():
+                    if callable(value):
+                        parent_context[key] = lazy(value)
+                        refresh_context_attrs.append(key)
+                parent_context["refresh_context_attrs"] = refresh_context_attrs
+
+            if self.is_modal and self.last_page_url is None:
+                logging.warning(
+                    f"last_page_url is sent as None for modal {self.__class__.__name__} which can cause issues with the modal behaviour on exit. make sure you have a success_url setup on the view"
                 )
-            context["form"], context["errors"] = form.serialize_form()
+
+            parent_context["last_page_url"] = self.last_page_url
+            parent_context.update(context)
+            return parent_context
 
         return context
 
     def get_form_class(self):
         old_form = super().get_form_class()
         if not issubclass(old_form, InertiaFormMixin):
-            return type(
-                f"Inertia{type(old_form).__name__}", (InertiaFormMixin, old_form), {}
-            )
+            return type(f"Inertia{old_form.__name__}", (InertiaFormMixin, old_form), {})
 
         return old_form
+
+    def form_valid(self, form):
+        """If the form is valid, redirect to the supplied URL."""
+        response = super().form_valid(form)
+        if self.request.POST.get("stay") == "true" or self.request.GET.get("stay") == "true":
+            return HttpResponseRedirect(self.request.path_info)
+        return response
+
+    def get_success_url(self, *args, **kwargs):
+        next_path = self.request.GET.get("next")
+        if next_path:
+            return next_path
+        success_url = getattr(self, "success_url", None)
+        try:
+            return super().get_success_url(*args, **kwargs)
+        except:
+            return success_url
+
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+        hide = self.request.GET.get("hide")
+        if self.allow_hide and hide:
+            for field_name in hide.split(","):
+                form.fields[field_name].widget = HiddenInput()
+
+        return form
