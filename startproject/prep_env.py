@@ -1,6 +1,8 @@
+# Python Standard Library Imports
 import shutil
 from pathlib import Path
 
+# Django Imports
 from django.core.management.utils import get_random_secret_key
 
 
@@ -14,6 +16,6 @@ def prep_env(project_name):
     with open(".env", "w") as file:
         file.write(env_details)
     Path("./static/dist/").mkdir(parents=True, exist_ok=True)
-    with open("./static/dist/.gitkeep", "w"):
-        pass
+    file = open("./static/dist/.gitkeep", "w")
+    file.close()
     shutil.rmtree(".git", ignore_errors=True)
