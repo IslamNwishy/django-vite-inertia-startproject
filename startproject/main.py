@@ -1,7 +1,10 @@
+# Python Standard Library Imports
 import argparse
 import os
 import subprocess
+import sys
 
+# Other Third Party Imports
 from prep_backend import prep_backend
 from prep_env import prep_env
 from prep_frontend import prep_frontend
@@ -32,7 +35,7 @@ def start_project():
         os.rename(src_path, dst_path)
     os.removedirs(source)
 
-    subprocess.run(["python", "manage.py", "startapp", "core"])
+    subprocess.run([sys.executable, "manage.py", "startapp", "core"])
 
     # prep backend
     prep_backend()
