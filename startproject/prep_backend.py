@@ -1,4 +1,9 @@
+# Python Standard Library Imports
+from pathlib import Path
+
+
 def prep_backend():
+    Path("./core/migrations_dev/").mkdir(parents=True, exist_ok=True)
     file = open("./core/migrations_dev/__init__.py", "w")
     file.close()
     with open("./core/models.py", "w") as file:
