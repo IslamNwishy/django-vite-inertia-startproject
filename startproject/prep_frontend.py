@@ -3,8 +3,6 @@ import os
 import shutil
 import subprocess
 
-TAILWIND_FORMS_VERSION = '"^0.5.6"'
-
 
 def prep_frontend(front):
     subprocess.run(["django-breeze", "create-app", front])
@@ -13,31 +11,22 @@ def prep_frontend(front):
         file.seek(0)
         file.write(file_text)
 
-    file_text.replace('root: resolve("./src"),\n', "")
+    file_text = file_text.replace('root: resolve("./src"),\n', "")
     with open("vite.config.build.js", "w") as file:
         file.write(file_text)
 
     with open("package.json", "r+") as file:
         file_text = file.read()
-        file_text.replace(
-            '"devDependencies": {',
-            """"devDependencies": {
-    "@tailwindcss/forms": """
-            + TAILWIND_FORMS_VERSION
-            + ",",
-        )
-        file_text.replace(
-            '"dev": "vite",',
-            """"dev": "vite",
-    "build": "vite build --config vite.config.build.js && vite build --outDir ./static/dist-ssr --ssr src/ssr.jsx --config vite.config.build.js",
-""",
+        file_text = file_text.replace(
+            '"build": "vite build"',
+            '"build": "vite build --config vite.config.build.js && vite build --outDir ./static/dist-ssr --ssr src/ssr.jsx --config vite.config.build.js"',
         )
         file.seek(0)
         file.write(file_text)
 
     with open("src/index.html", "r") as file:
         file_text = file.read()
-        file_text.replace("{% vite_asset 'main.jsx' %}", "{% vite_asset 'src/main.jsx' %}")
+        file_text = file_text.replace("{% vite_asset 'main.jsx' %}", "{% vite_asset 'src/main.jsx' %}")
 
     with open("src/index_prod.html", "w") as file:
         file.write(file_text)
@@ -76,6 +65,9 @@ media
 # vite temp files
 .vite"""
             )
+
+    subprocess.run(["npm", "install"])
+    subprocess.run(["npm", "install", "@tailwindcss/forms", "--save-dev"])
     allfiles = os.listdir(source)
 
     # iterate on all files to move them to destination folder

@@ -8,7 +8,7 @@
 - Install requirements `pip install -r requirements_dev.txt`
 - Run `python .\startproject <project name>` with the name of the project you want to initialize
 - run `docker compose up`
-- in a different terminal tab run `npm i` followed by `npm run dev`
+- in a different terminal tab run `npm run dev`
 - navigate to `localhost:8000` to see the welcome page
 - Delete the startproject directory after the project is initialized
 

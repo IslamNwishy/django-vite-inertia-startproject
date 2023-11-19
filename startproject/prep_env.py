@@ -16,6 +16,9 @@ def prep_env(project_name):
     with open(".env", "w") as file:
         file.write(env_details)
     Path("./static/dist/").mkdir(parents=True, exist_ok=True)
+    Path("./src/public").mkdir(parents=True, exist_ok=True)
     file = open("./static/dist/.gitkeep", "w")
+    file.close()
+    file = open("./src/public/.gitkeep", "w")
     file.close()
     shutil.rmtree(".git", ignore_errors=True)
