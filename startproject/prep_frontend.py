@@ -1,5 +1,6 @@
 # Python Standard Library Imports
 import os
+import shutil
 import subprocess
 
 TAILWIND_FORMS_VERSION = '"^0.5.6"'
@@ -49,8 +50,7 @@ def prep_frontend(front):
     source = "./startproject/_temp_files/react"
     dest = "./src"
     if front == "vue3":
-        source = "./startproject/_temp_files/vue3/components"
-        dest = "./src/components"
+        source = "./startproject/_temp_files/vue3"
         # the vue3 creation processes overwrites our gitignore
         with open(".gitignore", "a") as f:
             f.write(
@@ -83,6 +83,5 @@ media
         src_path = os.path.join(source, f)
         dst_path = os.path.join(dest, f)
         if os.path.exists(dst_path):
-            print(f"Path {dst_path} already exists, skipping ...")
-            continue
+            shutil.rmtree(dst_path, ignore_errors=True)
         os.rename(src_path, dst_path)
