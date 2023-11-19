@@ -66,8 +66,8 @@ media
 .vite"""
             )
 
-    subprocess.run(["npm", "install"])
-    subprocess.run(["npm", "install", "@tailwindcss/forms", "--save-dev"])
+    subprocess.run(["npm", "install"], shell=True)
+    subprocess.run(["npm", "install", "@tailwindcss/forms", "--save-dev"], shell=True)
     allfiles = os.listdir(source)
 
     # iterate on all files to move them to destination folder
