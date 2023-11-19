@@ -56,7 +56,7 @@ class UserManager(BaseUserManager):
         return self._create_user(email,  password, username, **extra_fields)
 
 
-class User(AbstractUser):
+class User(AbstractModelFunctionsMixin, AbstractUser):
     """"""
     email = models.EmailField(unique=True)
     USERNAME_FIELD = "email"

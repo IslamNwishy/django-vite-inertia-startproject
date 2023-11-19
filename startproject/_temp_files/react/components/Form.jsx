@@ -26,7 +26,6 @@ export default function Form({
       preserveScroll: preserveScroll === false ? false : true,
     });
   };
-
   const makeFormData = (data) => {
     const formData = new FormData();
     for (const key of Object.keys(data)) {

@@ -1,3 +1,4 @@
+# Python Standard Library Imports
 import re
 
 
@@ -27,7 +28,10 @@ def prep_settings(project_name):
         "from pathlib import Path\nfrom decouple import config\nfrom utils.inertia_utils.inertia_json_encoder import InertiaCustomJsonEncoder",
     )
     file_text = re.sub(r"SECRET_KEY = .*", 'SECRET_KEY = config("SECRET_KEY")', file_text)
-    file_text = file_text.replace("DEBUG = True", 'DEBUG = config("DEBUG", True, cast=bool)')
+    file_text = file_text.replace(
+        "DEBUG = True",
+        'DEBUG = config("DEBUG", True, cast=bool)\nSSR_ENABLED = config("SSR_ENABLED", not DEBUG, cast=bool)',
+    )
     file_text = file_text.replace(
         "ALLOWED_HOSTS = []",
         'ALLOWED_HOSTS = config("ALLOWED_HOSTS", "*").replace(" ","").split(",")',
@@ -72,9 +76,9 @@ STORAGES = {
 # django-breeze configurations
 DJANGO_BREEZE = {
     "INERTIA": {
-        "LAYOUT": "index.html",
-        "SSR_URL": "http://localhost:13714",
-        "SSR_ENABLED": False,
+        "LAYOUT": "index.html" if not SSR_ENABLED else "index_prod.html",
+        "SSR_URL": config("SSR_URL", default="http://localhost:13714"),
+        "SSR_ENABLED": SSR_ENABLED,
     },
     "DJANGO_VITE": {
         "DEV_MODE": DEBUG,  # vite dev mode, default based on django DEBUG
@@ -84,6 +88,7 @@ DJANGO_BREEZE = {
         "WS_CLIENT_URL": "@vite/client",
         "ASSETS_PATH": "static/dist",  # vite build asset path
         "STATIC_URL_PREFIX": "",
+        "MANIFEST_PATH": "static/dist/manifest.json",
     },
 }
 

@@ -2,16 +2,31 @@
 import logging
 import re
 from copy import copy
+from types import MethodType
 
 # Django Imports
 from django.core.exceptions import ImproperlyConfigured
 from django.forms import HiddenInput
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.urls import resolve
 
 # Other Third Party Imports
 from inertia import lazy, render
 from utils.inertia_utils.inertia_form_mixin import InertiaFormMixin
+
+
+def custom_build_uri(self, location=None):
+    referer = self.headers.get("X-Inertia-Referer")
+    url = None
+    if (
+        referer
+        and getattr(self, "preserve_url", False)
+        or self.GET.get("preserve_url") in [True, "true"]
+        or self.POST.get("preserve_url") in [True, "true"]
+    ):
+        url = referer
+
+    return type(self).build_absolute_uri(self, url or location)
 
 
 class InertiaTemplateMixin:
@@ -56,6 +71,7 @@ class InertiaTemplateMixin:
         context["success_url"] = self.get_success_url()
         context["current_url"] = self.request.get_full_path()
         context["__EXTRAS__"] = self.template_extras
+        self.request.build_absolute_uri = MethodType(custom_build_uri, self.request)
         return render(
             self.request,
             self.get_template_name(),
@@ -118,16 +134,18 @@ class InertiaTemplateMixin:
 
     def generate_template_name(self):
         if self.is_modal:
-            referer = self.request.headers.get("Referer")
+            referer = self.request.headers.get("X-Inertia-Referer")
             if referer:
-                base_path = "/" + "/".join(referer.split("/")[3:]).split("?")[0]
+                base_path = referer.split("?", 1)[0]
                 try:
                     view_cls = resolve(base_path).func.view_class
                     if view_cls.is_modal:
                         base_path = self.request.session.get("last_page")
                         view_cls = resolve(base_path).func.view_class if base_path else None
                 except Exception as e:
-                    logging.warning(f"{e} while trying to get the base page for the modal {self.__class__.__name__}")
+                    logging.warning(
+                        f"ERROR {e} while trying to get the base page for the modal {self.__class__.__name__}"
+                    )
                     view_cls = None
 
                 if view_cls and view_cls.can_hold_modal:
@@ -188,9 +206,33 @@ class InertiaViewMixin(InertiaTemplateMixin):
 
         return lambda: form.serialize_form(self.submit_button_text), form.serialize_errors
 
+    def paginate_form_field(self):
+        field_name, offset, limit, query = (
+            self.request.GET.get("field"),
+            self.request.GET.get("offset"),
+            self.request.GET.get("limit"),
+            self.request.GET.get("query"),
+        )
+        form = self.get_form()
+        if not (field_name or offset):
+            logging.warning(f"paginate field must have a field and offset but got {self.request.GET}")
+            return {}
+
+        setattr(self.request, "preserve_url", True)
+        choices, offset, limit = form.paginate_field(field_name, int(offset), int(limit) if limit else None, query)
+        return {
+            "newChoices": choices,
+            "newOffset": offset,
+            "newLimit": limit,
+            "query": query,
+        }
+
     def get_context_data(self, **kwargs):
         """Serialize a form for inertia if found"""
         context = super().get_context_data(**kwargs)
+        if not getattr(self.request, "faked", False):
+            context["paginate"] = lazy(self.paginate_form_field)
+
         form = context.get("form")
         if form:
             if isinstance(form, list):
@@ -244,17 +286,17 @@ class InertiaViewMixin(InertiaTemplateMixin):
 
         return old_form
 
-    def form_valid(self, form):
-        """If the form is valid, redirect to the supplied URL."""
-        response = super().form_valid(form)
-        if self.request.POST.get("stay") == "true" or self.request.GET.get("stay") == "true":
-            return HttpResponseRedirect(self.request.path_info)
-        return response
-
     def get_success_url(self, *args, **kwargs):
-        next_path = self.request.GET.get("next")
+        # should stay in the same page
+        if self.request.POST.get("stay") in [True, "true"] or self.request.GET.get("stay") in [True, "true"]:
+            return self.request.path_info
+
+        # given a next path
+        next_path = self.request.GET.get("next") or self.request.POST.get("next")
         if next_path:
             return next_path
+
+        # given a success url
         success_url = getattr(self, "success_url", None)
         try:
             return super().get_success_url(*args, **kwargs)

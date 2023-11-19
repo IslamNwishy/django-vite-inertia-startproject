@@ -14,7 +14,7 @@ from prep_settings import prep_settings
 def start_project():
     parser = argparse.ArgumentParser(description="Create a project django + vite (react + tailwind) + inertia")
     parser.add_argument("project_name", nargs="?")
-    parser.add_argument("-f", "--front", default="vue3", choices=["react", "vue3"])
+    parser.add_argument("-f", "--front", default="react", choices=["react", "vue3"])
     args = parser.parse_args()
     project_name = args.project_name
     if not project_name:

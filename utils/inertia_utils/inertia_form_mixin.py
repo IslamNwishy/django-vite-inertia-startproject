@@ -3,6 +3,8 @@ import json
 
 # Django Imports
 from django import forms
+from django.core.exceptions import ImproperlyConfigured
+from django.db.models import Q
 
 FORM_META = ["data", "files", "is_bound", "empty_permitted"]
 FORM_FIELD_ATTRS = ["strip", "show_hidden_initial", "help_text", "initial"]
@@ -27,6 +29,7 @@ READONLY_DEFAULT_POSTPROCESS = {
 
 class InertiaFormMixin:
     submit_button_text = "Submit"
+    DEFAULT_PAGE_SIZE = 10
 
     def get_submit_button_text(self):
         """return the text to show for the submit button"""
@@ -47,16 +50,20 @@ class InertiaFormMixin:
     def serialize_errors(self):
         return json.loads(self.errors.as_json())
 
-    def serialize_fields(self, read_only=False, minimal=False, include=[], exclude=[]):
+    def serialize_fields(self, read_only=False, minimal=False, include=[], exclude=[], include_id=False):
         """serialize django form field into dict"""
         field_whitelist = include or self.fields.keys()
         field_whitelist = set(field_whitelist) - set(exclude)
         if minimal:
-            return {
+            serialized_fields = {
                 name: self.get_inertia_field(field, name, read_only, minimal)
                 for name, field in self.fields.items()
                 if name in field_whitelist
             }
+            if include_id:
+                serialized_fields["id"] = self.instance.id
+
+            return serialized_fields
 
         return [
             self.get_inertia_field(field, name, read_only)
@@ -102,10 +109,55 @@ class InertiaFormMixin:
                 field_data["readonly_data"] = self._get_readonly_value(field.field, field_data["value"], name)
 
         choices = getattr(widget, "choices", None)
-        if choices:
-            field_data["choices"] = [[str(choice[0]), choice[1]] for choice in choices]
+        if choices and not (meta_attrs.get("type") == "hidden" or meta_attrs.get("disabled")):
+            if isinstance(field.field, forms.ModelChoiceField):
+                field_choices, field_data["offset"], field_data["limit"] = self.paginate_field(name)
+            else:
+                field_choices = [[str(choice[0]), choice[1]] for choice in choices]
+
+            field_data["choices"] = field_choices
 
         return field_data
+
+    def paginate_field(self, field_name, offset=0, limit=None, query=None):
+        if limit is None:
+            limit = self.DEFAULT_PAGE_SIZE
+
+        field = self.fields.get(field_name)
+        if isinstance(field, forms.ModelChoiceField):
+            value = forms.BoundField(self, field, field_name).value()
+            new_offset = offset + limit
+            choices = []
+            queryset = field.queryset
+            model = queryset.model
+            search_fields = model.get_search_fields()
+            if not search_fields:
+                if hasattr(model, "name"):
+                    search_fields = ["name__icontains"]
+                else:
+                    raise ImproperlyConfigured(f"Model {model.__name__} does not have any search fields")
+
+            if query:
+                search_query = Q(**{search_fields[0]: query})
+                for search_key in search_fields[1:]:
+                    search_query |= Q(**{search_key: query})
+                queryset = queryset.filter(search_query)
+            elif value:
+                chosen = field.to_python(value)
+                if offset == 0:
+                    choices.append([str(chosen.pk), str(chosen)])
+
+                queryset = queryset.exclude(pk=chosen.pk)
+
+            if not queryset.ordered:
+                queryset = queryset.order_by(*(model._meta.ordering or ["pk"]))
+
+            for choice in queryset[offset:new_offset]:
+                choices.append([str(choice.pk), str(choice)])
+
+            return choices, new_offset, limit
+
+        return [], offset, limit
 
     def _get_readonly_value(self, field, value, name):
         """

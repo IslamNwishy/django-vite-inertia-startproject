@@ -9,6 +9,7 @@ const BUTTON_SIZES = {
 
 export default function Button({
   children,
+  label,
   className,
   loading,
   disabled,
@@ -33,13 +34,17 @@ export default function Button({
         block ? 'w-full' : 'w-auto'
       } ${BUTTON_SIZES[size]}`;
     if (typeColor === 'transparent')
-      return `flex justify-center items-center whitespace-nowrap gap-1 rounded-md border border-gray-300 bg-transparent px-3 text-sm font-semibold leading-6 text-gray-900 shadow-sm hover:bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600 active:bg-gray-300 transition-all ease-in-out duration-100 ${
+      return `flex justify-center items-center whitespace-nowrap gap-1 rounded-md border border-gray-200 bg-transparent px-3 text-sm font-semibold leading-6 text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-none active:bg-gray-200 transition-all ease-in-out duration-100 ${
         block ? 'w-full' : 'w-auto'
       } ${BUTTON_SIZES[size]}`;
     if (typeColor === 'danger')
-      return `flex justify-center items-center whitespace-nowrap gap-1 rounded-md bg-red-600 px-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 active:bg-red-300 transition-all ease-in-out duration-100 ${
+      return `flex justify-center items-center whitespace-nowrap gap-1 rounded-md bg-red-600 px-3 text-sm font-semibold leading-6 shadow-sm focus-visible:outline focus-visible:none focus-visible:outline-offset-2 focus-visible:outline-none transition-all ease-in-out duration-100 ${
         block ? 'w-full' : 'w-auto'
-      } ${BUTTON_SIZES[size]}`;
+      } ${BUTTON_SIZES[size]} ${
+        outline
+          ? 'bg-transparent border border-red-600 text-red-600 hover:text-red-700 transition-none hover:bg-red-100 active:bg-red-200'
+          : 'text-white hover:bg-red-500 active:bg-red-400'
+      }`;
     if (typeColor === 'link')
       return `flex justify-center items-center whitespace-nowrap gap-1 px-3 text-sm text-brand-500 hover:text-brand-600 font-semibold  ${
         block ? 'w-full' : 'w-auto'
@@ -84,6 +89,7 @@ export default function Button({
           props.icon
         )}
         {children}
+        {label}
       </a>
     );
   if (buttonType == 'link')
@@ -111,6 +117,7 @@ export default function Button({
           props.icon
         )}
         {children}
+        {label}
       </Link>
     );
 
@@ -138,6 +145,7 @@ export default function Button({
         props.icon
       )}
       {children}
+      {label}
     </button>
   );
 }

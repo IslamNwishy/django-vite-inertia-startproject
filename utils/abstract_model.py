@@ -3,6 +3,8 @@ from django.db import models
 
 
 class AbstractModelFunctionsMixin:
+    search_fields = []
+
     @classmethod
     def get_all_field_names(cls, exclude=[], include_reverse=[], *args, **kwargs):
         """
@@ -20,6 +22,10 @@ class AbstractModelFunctionsMixin:
 
         fields = [field.name for field in cls._meta.get_fields(*args, **kwargs) if field.name not in exclude]
         return fields
+
+    @classmethod
+    def get_search_fields(cls):
+        return cls.search_fields
 
 
 class AbstractModel(models.Model, AbstractModelFunctionsMixin):
