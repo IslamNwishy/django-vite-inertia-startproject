@@ -82,4 +82,7 @@ media
     for f in allfiles:
         src_path = os.path.join(source, f)
         dst_path = os.path.join(dest, f)
+        if os.path.exists(dst_path):
+            print(f"Path {dst_path} already exists, skipping ...")
+            continue
         os.rename(src_path, dst_path)
