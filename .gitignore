@@ -40,6 +40,8 @@ media
 !/static/dist
 /static/dist/*
 !/static/dist/.gitkeep
+staticfiles
+mailpit.db
 
 # vite temp files
 .vite

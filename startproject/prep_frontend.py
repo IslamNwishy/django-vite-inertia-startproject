@@ -7,7 +7,7 @@ import subprocess
 def prep_frontend(front):
     subprocess.run(["django-breeze", "create-app", front])
     with open("vite.config.js", "r+") as file:
-        file_text = file.read().replace('host: "localhost"', "host: true")
+        file_text = file.read().replace('host: "localhost,"', "host: true,\n    origin: 'http://localhost:5173',")
         file.seek(0)
         file.write(file_text)
 
@@ -61,6 +61,8 @@ media
 !/static/dist
 /static/dist/*
 !/static/dist/.gitkeep
+staticfiles
+mailpit.db
 
 # vite temp files
 .vite"""

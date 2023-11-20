@@ -25,7 +25,7 @@ def prep_settings(project_name):
     file_text = re.sub(middleware_pattern, f"MIDDLEWARE = [{middlewares}]", file_text)
     file_text = file_text.replace(
         "from pathlib import Path",
-        "from pathlib import Path\nfrom decouple import config\nfrom utils.inertia_utils.inertia_json_encoder import InertiaCustomJsonEncoder",
+        "import re\nfrom pathlib import Path\nfrom decouple import config\nfrom utils.inertia_utils.inertia_json_encoder import InertiaCustomJsonEncoder",
     )
     file_text = re.sub(r"SECRET_KEY = .*", 'SECRET_KEY = config("SECRET_KEY")', file_text)
     file_text = file_text.replace(
@@ -110,6 +110,46 @@ MIGRATION_MODULES = {
 
 # Inertia Encoder
 INERTIA_JSON_ENCODER = InertiaCustomJsonEncoder
+
+def immutable_file_test(path, url):
+    # Match filename with 12 hex digits before the extension
+    # e.g. app.db8f2edc0c8a.js
+    return re.match(r"^.+\.[0-9a-f]{8,12}\..+$", url)
+
+
+WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
+
+# EMAIL
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="")
+if DEBUG:
+    EMAIL_HOST = "mailpit"
+    EMAIL_PORT = 1025
+    EMAIL_USE_TLS = False
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "propagate": True,
+            "level": "INFO",
+        },
+    },
+}
 """
     with open(f"./{project_name}/settings.py", "w") as file:
         file.write(file_text)
