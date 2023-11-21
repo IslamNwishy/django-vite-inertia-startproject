@@ -4,7 +4,7 @@
 
 - Clone the project into a directory on your system
 - Rename the repo to your project name
-- Create a virtual environment and activate it
+- Create a virtual environment and activate it `python -m venv venv` then `venv/Scripts/activate`
 - Install requirements `pip install -r requirements_dev.txt`
 - Run `python .\startproject <project name>` with the name of the project you want to initialize
 - run `docker compose up`
